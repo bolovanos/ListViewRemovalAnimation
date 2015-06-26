@@ -20,15 +20,16 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.widget.FrameLayout;
 
 public class BackgroundContainer extends FrameLayout {
-
+    private static final String TAG = "BackgroundContainer";
     boolean mShowing = false;
     Drawable mShadowedBackground;
     int mOpenAreaTop, mOpenAreaBottom, mOpenAreaHeight;
     boolean mUpdateBounds = false;
-    
+
     public BackgroundContainer(Context context) {
         super(context);
         init();
@@ -53,21 +54,24 @@ public class BackgroundContainer extends FrameLayout {
         setWillNotDraw(false);
         mOpenAreaTop = top;
         mOpenAreaHeight = bottom;
+
         mShowing = true;
         mUpdateBounds = true;
     }
-    
+
     public void hideBackground() {
         setWillNotDraw(true);
         mShowing = false;
     }
-    
+
     @Override
     protected void onDraw(Canvas canvas) {
+        Log.d(TAG, "top: '" + mOpenAreaTop + "', bottom: '" + mOpenAreaHeight + "', getWidth(): '"
+                + getWidth() + "'");
         if (mShowing) {
-            	if (mUpdateBounds) {
+            if (mUpdateBounds) {
                 mShadowedBackground.setBounds(0, 0, getWidth(), mOpenAreaHeight);
-            	}
+            }
             canvas.save();
             canvas.translate(0, mOpenAreaTop);
             mShadowedBackground.draw(canvas);

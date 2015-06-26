@@ -30,7 +30,7 @@ public class StableArrayAdapter extends ArrayAdapter<String> {
     View.OnTouchListener mTouchListener;
 
     public StableArrayAdapter(Context context, int textViewResourceId,
-            List<String> objects, View.OnTouchListener listener) {
+                              List<String> objects, View.OnTouchListener listener) {
         super(context, textViewResourceId, objects);
         mTouchListener = listener;
         for (int i = 0; i < objects.size(); ++i) {

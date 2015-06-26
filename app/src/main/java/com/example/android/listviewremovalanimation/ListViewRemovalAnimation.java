@@ -20,7 +20,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -43,20 +45,31 @@ public class ListViewRemovalAnimation extends Activity {
     boolean mSwiping = false;
     boolean mItemPressed = false;
     HashMap<Long, Integer> mItemIdTopMap = new HashMap<Long, Integer>();
+    Context context;
+    int mAmountOfCheeses = 16;
+    int mRefillWithCheesesOn = -1;
 
     private static final int SWIPE_DURATION = 250;
     private static final int MOVE_DURATION = 150;
+    private final static String TAG = "ListViewRemovalAnimation";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        this.context = this;
         setContentView(R.layout.activity_list_view_deletion);
-        
+
         mBackgroundContainer = (BackgroundContainer) findViewById(R.id.listViewBackground);
         mListView = (ListView) findViewById(R.id.listview);
         android.util.Log.d("Debug", "d=" + mListView.getDivider());
         final ArrayList<String> cheeseList = new ArrayList<String>();
-        for (int i = 0; i < Cheeses.sCheeseStrings.length; ++i) {
+
+        if (mAmountOfCheeses >= Cheeses.sCheeseStrings.length) {
+            mAmountOfCheeses = Cheeses.sCheeseStrings.length;
+        }
+
+
+        for (int i = 0; i < mAmountOfCheeses; ++i) {
             cheeseList.add(Cheeses.sCheeseStrings[i]);
         }
         mAdapter = new StableArrayAdapter(this,R.layout.opaque_text_view, cheeseList,
@@ -68,52 +81,67 @@ public class ListViewRemovalAnimation extends Activity {
      * Handle touch events to fade/move dragged items as they are swiped out
      */
     private View.OnTouchListener mTouchListener = new View.OnTouchListener() {
-        
+
         float mDownX;
         private int mSwipeSlop = -1;
-        
+
         @Override
         public boolean onTouch(final View v, MotionEvent event) {
+
+
+            if (mRefillWithCheesesOn < mListView.getChildCount()) {
+                mRefillWithCheesesOn = mListView.getChildCount();
+            }
+
             if (mSwipeSlop < 0) {
                 mSwipeSlop = ViewConfiguration.get(ListViewRemovalAnimation.this).
                         getScaledTouchSlop();
             }
             switch (event.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                if (mItemPressed) {
-                    // Multi-item swipes not handled
-                    return false;
-                }
-                mItemPressed = true;
-                mDownX = event.getX();
-                break;
-            case MotionEvent.ACTION_CANCEL:
-                v.setAlpha(1);
-                v.setTranslationX(0);
-                mItemPressed = false;
-                break;
-            case MotionEvent.ACTION_MOVE:
+                case MotionEvent.ACTION_DOWN:
+                    if (mItemPressed) {
+                        // Multi-item swipes not handled
+                        Log.d(TAG, "MotionEvent.ACTION_DOWN-a1");
+                        return false;
+                    }
+                    Log.d(TAG, "MotionEvent.ACTION_DOWN-a2");
+                    mItemPressed = true;
+                    mDownX = event.getX();
+                    break;
+                case MotionEvent.ACTION_CANCEL:
+                    Log.d(TAG, "MotionEvent.ACTION_CANCEL-b1");
+                    v.setAlpha(1);
+                    v.setTranslationX(0);
+                    mItemPressed = false;
+                    break;
+                case MotionEvent.ACTION_MOVE:
                 {
+                    Log.d(TAG, "MotionEvent.ACTION_MOVE-c1");
                     float x = event.getX() + v.getTranslationX();
                     float deltaX = x - mDownX;
                     float deltaXAbs = Math.abs(deltaX);
                     if (!mSwiping) {
+                        Log.d(TAG, "MotionEvent.ACTION_MOVE-c2");
                         if (deltaXAbs > mSwipeSlop) {
+                            Log.d(TAG, "MotionEvent.ACTION_MOVE-c3");
                             mSwiping = true;
                             mListView.requestDisallowInterceptTouchEvent(true);
                             mBackgroundContainer.showBackground(v.getTop(), v.getHeight());
                         }
                     }
                     if (mSwiping) {
+                        Log.d(TAG, "MotionEvent.ACTION_MOVE-c4");
                         v.setTranslationX((x - mDownX));
                         v.setAlpha(1 - deltaXAbs / v.getWidth());
                     }
                 }
                 break;
-            case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_UP:
                 {
+                    Log.d(TAG, "MotionEvent.ACTION_UP-d1");
                     // User let go - figure out whether to animate the view out, or back into place
                     if (mSwiping) {
+                        Log.d(TAG, "MotionEvent.ACTION_UP-d2");
                         float x = event.getX() + v.getTranslationX();
                         float deltaX = x - mDownX;
                         float deltaXAbs = Math.abs(deltaX);
@@ -122,12 +150,14 @@ public class ListViewRemovalAnimation extends Activity {
                         float endAlpha;
                         final boolean remove;
                         if (deltaXAbs > v.getWidth() / 4) {
+                            Log.d(TAG, "MotionEvent.ACTION_UP-d3");
                             // Greater than a quarter of the width - animate it out
                             fractionCovered = deltaXAbs / v.getWidth();
                             endX = deltaX < 0 ? -v.getWidth() : v.getWidth();
                             endAlpha = 0;
                             remove = true;
                         } else {
+                            Log.d(TAG, "MotionEvent.ACTION_UP-d4");
                             // Not far enough - animate it back
                             fractionCovered = 1 - (deltaXAbs / v.getWidth());
                             endX = 0;
@@ -150,8 +180,10 @@ public class ListViewRemovalAnimation extends Activity {
                                         v.setAlpha(1);
                                         v.setTranslationX(0);
                                         if (remove) {
+                                            Log.d(TAG, "MotionEvent.ACTION_UP-d5");
                                             animateRemoval(mListView, v);
                                         } else {
+                                            Log.d(TAG, "MotionEvent.ACTION_UP-d6");
                                             mBackgroundContainer.hideBackground();
                                             mSwiping = false;
                                             mListView.setEnabled(true);
@@ -162,8 +194,8 @@ public class ListViewRemovalAnimation extends Activity {
                 }
                 mItemPressed = false;
                 break;
-            default: 
-                return false;
+                default:
+                    return false;
             }
             return true;
         }
@@ -177,6 +209,8 @@ public class ListViewRemovalAnimation extends Activity {
      * layout, and then to run animations between all of those start/end positions.
      */
     private void animateRemoval(final ListView listview, View viewToRemove) {
+
+        Log.d(TAG, "...animateRemoval, mItemIdTopMapA: " + mItemIdTopMap);
         int firstVisiblePosition = listview.getFirstVisiblePosition();
         for (int i = 0; i < listview.getChildCount(); ++i) {
             View child = listview.getChildAt(i);
@@ -186,6 +220,7 @@ public class ListViewRemovalAnimation extends Activity {
                 mItemIdTopMap.put(itemId, child.getTop());
             }
         }
+        Log.d(TAG, "...animateRemoval, mItemIdTopMapB: " + mItemIdTopMap);
         // Delete the item from the adapter
         int position = mListView.getPositionForView(viewToRemove);
         mAdapter.remove(mAdapter.getItem(position));
@@ -194,6 +229,7 @@ public class ListViewRemovalAnimation extends Activity {
         observer.addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
             public boolean onPreDraw() {
                 observer.removeOnPreDrawListener(this);
+                Log.d(TAG, "...animateRemoval, onPreDraw");
                 boolean firstAnimation = true;
                 int firstVisiblePosition = listview.getFirstVisiblePosition();
                 for (int i = 0; i < listview.getChildCount(); ++i) {
@@ -240,6 +276,22 @@ public class ListViewRemovalAnimation extends Activity {
                     }
                 }
                 mItemIdTopMap.clear();
+                Log.d(TAG, "|   ...mListView.getChildCount(): " + mListView.getChildCount()
+                        + ", mAdapter.getCount():" + mAdapter.getCount());
+
+
+                if (mListView.getChildCount() == mRefillWithCheesesOn - 3) {
+                    final ArrayList<String> cheeseList = new ArrayList<String>();
+                    for (int i = 0; i < mAmountOfCheeses; ++i) {
+                        cheeseList.add(Cheeses.sCheeseStrings[i]);
+                    }
+                    mAdapter = new StableArrayAdapter(context,R.layout.opaque_text_view, cheeseList,
+                            mTouchListener);
+                    mListView.setAdapter(mAdapter);
+                    Log.d(TAG, "|    ...mListView updated");
+                }
+
+
                 return true;
             }
         });
